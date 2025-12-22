@@ -1,0 +1,106 @@
+name: Release Binary
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0
+
+permissions:
+  contents: write  # Required to create releases
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Build binary for Linux AMD64
+      run: |
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
+          -ldflags="-w -s" \
+          -o mongo-telegraf-query-linux-amd64 \
+          .
+
+        chmod +x mongo-telegraf-query-linux-amd64
+
+        # Verify binary
+        file mongo-telegraf-query-linux-amd64
+        ls -lh mongo-telegraf-query-linux-amd64
+
+    - name: Build binary for Linux ARM64
+      run: |
+        GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build \
+          -ldflags="-w -s" \
+          -o mongo-telegraf-query-linux-arm64 \
+          .
+
+        chmod +x mongo-telegraf-query-linux-arm64
+        ls -lh mongo-telegraf-query-linux-arm64
+
+    - name: Create checksums
+      run: |
+        sha256sum mongo-telegraf-query-linux-amd64 > checksums.txt
+        sha256sum mongo-telegraf-query-linux-arm64 >> checksums.txt
+        cat checksums.txt
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          mongo-telegraf-query-linux-amd64
+          mongo-telegraf-query-linux-arm64
+          checksums.txt
+        body: |
+          ## MongoDB Telegraf Querier ${{ steps.get_version.outputs.VERSION }}
+
+          ### Installation
+
+          Download the binary for your platform:
+
+          **Linux AMD64:**
+          ```bash
+          curl -fsSL https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/mongo-telegraf-query-linux-amd64 -o mongo-telegraf-query
+          chmod +x mongo-telegraf-query
+          ```
+
+          **Linux ARM64:**
+          ```bash
+          curl -fsSL https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/mongo-telegraf-query-linux-arm64 -o mongo-telegraf-query
+          chmod +x mongo-telegraf-query
+          ```
+
+          ### Usage
+
+          ```bash
+          export MONGO_URI="mongodb://localhost:27017"
+          export MONGO_DATABASE="mydb"
+          export MONGO_COLLECTION="mycollection"
+          export MONGO_QUERY='[{"$group":{"_id":"$status","count":{"$sum":1}}}]'
+          export METRIC_TAGS="metric=test,source=mongodb"
+
+          ./mongo-telegraf-query
+          ```
+
+          ### Verify Checksum
+
+          ```bash
+          sha256sum -c checksums.txt
+          ```
+
+          See the [README](https://github.com/${{ github.repository }}) for complete documentation.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
