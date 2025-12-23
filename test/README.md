@@ -85,4 +85,12 @@ export MONGO_QUERY='{"status":"active"}'
 
 # Multiple filters
 export MONGO_QUERY='{"status":"active","region":"us-west"}'
+
+# With field projection (select specific fields)
+export MONGO_QUERY='{"status":"active"}'
+export MONGO_PROJECTION='{"_id":1,"name":1,"age":1}'
+
+# Exclude fields (return all except password)
+export MONGO_QUERY='{}'
+export MONGO_PROJECTION='{"password":0,"internal_data":0}'
 ```

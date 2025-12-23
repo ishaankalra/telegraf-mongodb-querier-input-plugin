@@ -53,4 +53,16 @@ export MONGO_QUERY='{"agent_type":"anthropic","user_id":"127-facets.cloud"}'
 ./mongo-telegraf-query
 echo ""
 
+echo "📊 Test 5: Projection - Select Specific Fields Only"
+echo "-----------------------------------"
+export QUERY_NAME="projection_test"
+export METRIC_TAGS="metric=tokens,source=mongodb,test=local,projection=enabled"
+export MONGO_QUERY='{"user_id":"127-facets.cloud"}'
+export MONGO_PROJECTION='{"_id":1,"user_id":1,"total_tokens":1}'
+
+./mongo-telegraf-query
+echo ""
+echo "Note: Only _id, user_id, and total_tokens fields are returned (other fields excluded)"
+echo ""
+
 echo "✅ All tests completed successfully!"

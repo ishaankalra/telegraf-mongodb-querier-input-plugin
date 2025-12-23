@@ -87,4 +87,17 @@ export MONGO_QUERY='{}'
 "$REPO_ROOT/mongo-telegraf-query"
 echo ""
 
+# Test 7: Projection - Select Specific Fields
+echo "📊 Test 7: Active Users with Field Projection"
+echo "-----------------------------------"
+export QUERY_NAME="active_users_projection"
+export METRIC_TAGS="metric=users,source=mongodb,test=sample_data,projection=enabled"
+export MONGO_QUERY='{"status":"active"}'
+export MONGO_PROJECTION='{"user_id":1,"status":1,"age":1}'
+
+"$REPO_ROOT/mongo-telegraf-query"
+echo ""
+echo "Note: Only user_id, status, and age fields are returned"
+echo ""
+
 echo "✅ All tests completed successfully!"
