@@ -14,32 +14,41 @@ if [ ! -f "./mongo-telegraf-query" ]; then
     echo "✅ Binary built successfully"
 fi
 
-echo "📊 Test 1: Token Usage by Model"
+echo "📊 Test 1: All Token Usage Records"
 echo "-----------------------------------"
 export MONGO_URI="mongodb://localhost:27017"
 export MONGO_DATABASE="usage_db"
 export MONGO_COLLECTION="daily_token_usage"
-export QUERY_NAME="token_usage_by_model"
+export QUERY_NAME="all_token_usage"
 export METRIC_TAGS="metric=tokens,source=mongodb,test=local"
-export MONGO_QUERY='[{"$group":{"_id":"$model_name","total_tokens":{"$sum":"$total_tokens"},"total_cost":{"$sum":"$cost_usd"},"record_count":{"$sum":1}}}]'
+export MONGO_QUERY='{}'
+
+./mongo-telegraf-query | head -3
+echo ""
+
+echo "📊 Test 2: Filter by Model Name"
+echo "-----------------------------------"
+export QUERY_NAME="sonnet_usage"
+export METRIC_TAGS="metric=tokens,source=mongodb,test=local,model=sonnet"
+export MONGO_QUERY='{"model_name":"claude-sonnet-4-5-20250929"}'
+
+./mongo-telegraf-query | head -3
+echo ""
+
+echo "📊 Test 3: Filter by User ID"
+echo "-----------------------------------"
+export QUERY_NAME="facets_user_usage"
+export METRIC_TAGS="metric=tokens,source=mongodb,test=local,user=facets"
+export MONGO_QUERY='{"user_id":"127-facets.cloud"}'
 
 ./mongo-telegraf-query
 echo ""
 
-echo "📊 Test 2: Usage by User and Agent Type"
+echo "📊 Test 4: Filter by Agent Type and User"
 echo "-----------------------------------"
-export QUERY_NAME="usage_by_user_agent"
-export METRIC_TAGS="metric=usage,source=mongodb,test=local"
-export MONGO_QUERY='[{"$group":{"_id":{"user":"$user_id","agent":"$agent_type"},"total_tokens":{"$sum":"$total_tokens"},"total_cost":{"$sum":"$cost_usd"},"avg_daily_cost":{"$avg":"$cost_usd"}}}]'
-
-./mongo-telegraf-query
-echo ""
-
-echo "📊 Test 3: Daily Totals with Date Filtering"
-echo "-----------------------------------"
-export QUERY_NAME="daily_totals"
-export METRIC_TAGS="metric=daily_stats,source=mongodb,test=local"
-export MONGO_QUERY='[{"$match":{"usage_date":{"$gte":{"$date":"2025-11-01T00:00:00Z"}}}},{"$group":{"_id":{"$dateToString":{"format":"%Y-%m-%d","date":"$usage_date"}},"total_tokens":{"$sum":"$total_tokens"},"total_cost":{"$sum":"$cost_usd"},"unique_users":{"$addToSet":"$user_id"}}},{"$project":{"_id":1,"total_tokens":1,"total_cost":1,"user_count":{"$size":"$unique_users"}}},{"$sort":{"_id":-1}},{"$limit":5}]'
+export QUERY_NAME="anthropic_facets_usage"
+export METRIC_TAGS="metric=tokens,source=mongodb,test=local"
+export MONGO_QUERY='{"agent_type":"anthropic","user_id":"127-facets.cloud"}'
 
 ./mongo-telegraf-query
 echo ""

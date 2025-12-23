@@ -36,7 +36,7 @@ make test
 export MONGO_URI="mongodb://your-host:27017"
 export MONGO_DATABASE="your_db"
 export MONGO_COLLECTION="your_collection"
-export MONGO_QUERY='[{"$group":{"_id":"$field","count":{"$sum":1}}}]'
+export MONGO_QUERY='{"status":"active"}'
 export METRIC_TAGS="metric=test,source=mongodb"
 
 ./mongo-telegraf-query
@@ -54,16 +54,14 @@ use test_db
 
 // Insert sample user data
 db.users.insertMany([
-  { status: "active", age: 25, created_at: new Date() },
-  { status: "active", age: 30, created_at: new Date() },
-  { status: "inactive", age: 35, created_at: new Date() },
-  { status: "pending", age: 28, created_at: new Date() }
+  { status: "active", age: 25, region: "us-west", created_at: new Date() },
+  { status: "active", age: 30, region: "us-east", created_at: new Date() },
+  { status: "inactive", age: 35, region: "eu-west", created_at: new Date() },
+  { status: "pending", age: 28, region: "us-west", created_at: new Date() }
 ])
 
-// Test query
-db.users.aggregate([
-  { $group: { _id: "$status", count: { $sum: 1 }, avg_age: { $avg: "$age" } } }
-])
+// Verify data
+db.users.find({ status: "active" })
 ```
 
 Then test with:
@@ -71,8 +69,20 @@ Then test with:
 export MONGO_URI="mongodb://localhost:27017"
 export MONGO_DATABASE="test_db"
 export MONGO_COLLECTION="users"
-export MONGO_QUERY='[{"$group":{"_id":"$status","count":{"$sum":1},"avg_age":{"$avg":"$age"}}}]'
+export MONGO_QUERY='{"status":"active"}'
 export METRIC_TAGS="metric=users,source=test"
 
 ../mongo-telegraf-query
+```
+
+Example queries:
+```bash
+# All documents
+export MONGO_QUERY='{}'
+
+# Filter by status
+export MONGO_QUERY='{"status":"active"}'
+
+# Multiple filters
+export MONGO_QUERY='{"status":"active","region":"us-west"}'
 ```

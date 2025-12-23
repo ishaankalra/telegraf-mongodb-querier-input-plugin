@@ -87,7 +87,7 @@ jobs:
           export MONGO_URI="mongodb://localhost:27017"
           export MONGO_DATABASE="mydb"
           export MONGO_COLLECTION="mycollection"
-          export MONGO_QUERY='[{"$group":{"_id":"$status","count":{"$sum":1}}}]'
+          export MONGO_QUERY='{"status":"active"}'
           export METRIC_TAGS="metric=test,source=mongodb"
 
           ./mongo-telegraf-query

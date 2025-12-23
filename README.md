@@ -1,11 +1,11 @@
 # Telegraf MongoDB Querier Input Plugin
 
-A lightweight Go binary that executes MongoDB aggregation queries and outputs metrics in Telegraf-compatible JSON format. Designed to be used with Telegraf's `exec` input plugin to collect custom MongoDB metrics and send them to various outputs (ClickHouse, PostgreSQL, MySQL, etc.).
+A lightweight Go binary that executes MongoDB queries and outputs metrics in Telegraf-compatible JSON format. Designed to be used with Telegraf's `exec` input plugin to collect custom MongoDB metrics and send them to various outputs (ClickHouse, PostgreSQL, MySQL, etc.).
 
 ## Features
 
 - **Environment Variable Based**: All configuration via environment variables (no config files needed)
-- **MongoDB Aggregation Support**: Run complex aggregation pipelines
+- **MongoDB Query Support**: Run find queries with filter conditions
 - **Telegraf Compatible**: Outputs newline-delimited JSON metrics
 - **Flexible Tagging**: Add custom tags to metrics via `METRIC_TAGS`
 - **Multiple Queries**: Run multiple queries with separate `exec` blocks
@@ -28,17 +28,17 @@ Set environment variables and run:
 export MONGO_URI="mongodb://localhost:27017"
 export MONGO_DATABASE="myapp"
 export MONGO_COLLECTION="users"
-export QUERY_NAME="user_stats"
+export QUERY_NAME="active_users"
 export METRIC_TAGS="metric=users,source=mongodb"
-export MONGO_QUERY='[{"$group":{"_id":"$status","count":{"$sum":1}}}]'
+export MONGO_QUERY='{"status":"active"}'
 
 ./mongo-telegraf-query
 ```
 
 **Expected Output:**
 ```json
-{"fields":{"count":150},"tags":{"metric":"users","source":"mongodb","_id":"active"},"timestamp":1703260800}
-{"fields":{"count":45},"tags":{"metric":"users","source":"mongodb","_id":"inactive"},"timestamp":1703260800}
+{"fields":{"age":28},"tags":{"metric":"users","source":"mongodb","status":"active","name":"John"},"timestamp":1703260800}
+{"fields":{"age":32},"tags":{"metric":"users","source":"mongodb","status":"active","name":"Jane"},"timestamp":1703260800}
 ```
 
 ## Environment Variables
@@ -50,7 +50,7 @@ export MONGO_QUERY='[{"$group":{"_id":"$status","count":{"$sum":1}}}]'
 | `MONGO_URI` | MongoDB connection string | `mongodb://user:pass@host:27017` |
 | `MONGO_DATABASE` | Database name | `myapp` |
 | `MONGO_COLLECTION` | Collection name | `users` |
-| `MONGO_QUERY` | Aggregation pipeline (JSON array) | `[{"$group":{"_id":"$status","count":{"$sum":1}}}]` |
+| `MONGO_QUERY` | Query filter (JSON dictionary) | `{"status":"active"}` |
 
 ### Optional
 
@@ -84,36 +84,37 @@ export MONGO_QUERY='[{"$group":{"_id":"$status","count":{"$sum":1}}}]'
     "MONGO_URI=${MONGO_URI}",
     "MONGO_DATABASE=myapp",
     "MONGO_COLLECTION=users",
-    "QUERY_NAME=user_stats",
+    "QUERY_NAME=active_users",
     "METRIC_TAGS=metric=users,source=mongodb",
-    "MONGO_QUERY=[{\"$group\":{\"_id\":\"$status\",\"user_count\":{\"$sum\":1},\"avg_age\":{\"$avg\":\"$age\"}}}]"
+    "MONGO_QUERY={\"status\":\"active\"}"
   ]
 ```
 
 ## MongoDB Query Examples
 
-### Simple Aggregation
+### Simple Query - All Documents
 ```bash
-export MONGO_QUERY='[{"$group":{"_id":"$status","count":{"$sum":1}}}]'
+export MONGO_QUERY='{}'
 ```
 
-### With Match Filter
+### Filter by Status
 ```bash
-export MONGO_QUERY='[{"$match":{"created_at":{"$gte":"2024-01-01"}}},{"$group":{"_id":"$region","total":{"$sum":"$amount"}}}]'
+export MONGO_QUERY='{"status":"active"}'
 ```
 
-### Complex Pipeline
+### Filter by Date Range
 ```bash
-export MONGO_QUERY='[
-  {"$match":{"status":"active"}},
-  {"$group":{
-    "_id":{"region":"$region","tier":"$tier"},
-    "user_count":{"$sum":1},
-    "avg_revenue":{"$avg":"$revenue"}
-  }},
-  {"$sort":{"user_count":-1}},
-  {"$limit":10}
-]'
+export MONGO_QUERY='{"created_at":{"$gte":"2024-01-01","$lt":"2024-12-31"}}'
+```
+
+### Complex Query with Multiple Conditions
+```bash
+export MONGO_QUERY='{"status":"active","region":"us-east","tier":{"$in":["premium","enterprise"]}}'
+```
+
+### Query with Regex
+```bash
+export MONGO_QUERY='{"email":{"$regex":"@example.com$"}}'
 ```
 
 ## Docker Usage
@@ -131,7 +132,7 @@ docker run --rm \
   -e MONGO_URI="mongodb://host.docker.internal:27017" \
   -e MONGO_DATABASE="myapp" \
   -e MONGO_COLLECTION="users" \
-  -e MONGO_QUERY='[{"$group":{"_id":"$status","count":{"$sum":1}}}]' \
+  -e MONGO_QUERY='{"status":"active"}' \
   -e METRIC_TAGS="metric=users,source=mongodb" \
   telegraf-mongodb-querier:latest \
   /usr/local/bin/mongo-telegraf-query
@@ -147,10 +148,10 @@ See `k8s/` directory for example manifests:
 
 ## Output Format
 
-The binary outputs newline-delimited JSON metrics:
+The binary outputs newline-delimited JSON metrics (one metric per document):
 
 ```json
-{"fields":{"user_count":150,"avg_age":28.5},"tags":{"status":"active","metric":"users"},"timestamp":1703260800}
+{"fields":{"age":28,"score":95.5},"tags":{"status":"active","name":"John","metric":"users"},"timestamp":1703260800}
 ```
 
 ### Field vs Tag Logic
@@ -158,6 +159,7 @@ The binary outputs newline-delimited JSON metrics:
 - **Fields** (numeric measurements): `int`, `float`, `bool`
 - **Tags** (dimensions): `string` values
 - **Nested Objects**: Flattened into tags/fields based on type
+- **Note**: The query uses MongoDB's `find()` operation, not aggregation pipelines
 
 ## Development
 

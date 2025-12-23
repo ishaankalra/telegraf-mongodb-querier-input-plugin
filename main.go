@@ -20,7 +20,7 @@ type Config struct {
 	MongoURI   string
 	Database   string
 	Collection string
-	Query      []bson.M
+	Query      bson.M
 	Tags       map[string]string
 }
 
@@ -68,18 +68,18 @@ func loadConfigFromEnv() (*Config, error) {
 		return nil, fmt.Errorf("MONGO_COLLECTION environment variable is required")
 	}
 
-	// Required: Query (MongoDB aggregation pipeline as JSON)
+	// Required: Query (MongoDB query as JSON dictionary)
 	queryJSON := os.Getenv("MONGO_QUERY")
 	if queryJSON == "" {
 		return nil, fmt.Errorf("MONGO_QUERY environment variable is required")
 	}
 
-	// Parse the aggregation pipeline
-	var pipeline []bson.M
-	if err := json.Unmarshal([]byte(queryJSON), &pipeline); err != nil {
-		return nil, fmt.Errorf("failed to parse MONGO_QUERY as JSON array: %w", err)
+	// Parse the query dictionary
+	var query bson.M
+	if err := json.Unmarshal([]byte(queryJSON), &query); err != nil {
+		return nil, fmt.Errorf("failed to parse MONGO_QUERY as JSON dictionary: %w", err)
 	}
-	config.Query = pipeline
+	config.Query = query
 
 	// Optional: Query name for logging
 	config.Name = os.Getenv("QUERY_NAME")
@@ -142,10 +142,10 @@ func executeQuery(config *Config) error {
 	// Get collection
 	collection := client.Database(config.Database).Collection(config.Collection)
 
-	// Execute aggregation
-	cursor, err := collection.Aggregate(ctx, config.Query)
+	// Execute find query
+	cursor, err := collection.Find(ctx, config.Query)
 	if err != nil {
-		return fmt.Errorf("failed to execute aggregation: %w", err)
+		return fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer cursor.Close(ctx)
 

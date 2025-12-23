@@ -23,55 +23,66 @@ fi
 export MONGO_URI="${MONGO_URI:-mongodb://localhost:27017}"
 export MONGO_DATABASE="${MONGO_DATABASE:-test_db}"
 
-# Test 1: User Statistics
-echo "📊 Test 1: User Statistics by Status"
+# Test 1: Active Users
+echo "📊 Test 1: Active Users"
 echo "-----------------------------------"
 export MONGO_COLLECTION="users"
-export QUERY_NAME="user_stats_by_status"
-export METRIC_TAGS="metric=users,source=mongodb,test=sample_data"
-export MONGO_QUERY='[{"$group":{"_id":"$status","user_count":{"$sum":1},"avg_age":{"$avg":"$age"}}},{"$sort":{"user_count":-1}}]'
+export QUERY_NAME="active_users"
+export METRIC_TAGS="metric=users,source=mongodb,test=sample_data,status=active"
+export MONGO_QUERY='{"status":"active"}'
 
 "$REPO_ROOT/mongo-telegraf-query"
 echo ""
 
-# Test 2: User Statistics by Region
-echo "📊 Test 2: User Statistics by Region"
+# Test 2: Users in US West Region
+echo "📊 Test 2: Users in US West Region"
 echo "-----------------------------------"
-export QUERY_NAME="user_stats_by_region"
-export MONGO_QUERY='[{"$group":{"_id":"$region","user_count":{"$sum":1},"avg_age":{"$avg":"$age"}}}]'
+export QUERY_NAME="us_west_users"
+export METRIC_TAGS="metric=users,source=mongodb,test=sample_data,region=us-west"
+export MONGO_QUERY='{"region":"us-west"}'
 
 "$REPO_ROOT/mongo-telegraf-query"
 echo ""
 
-# Test 3: Order Totals by Status and Region
-echo "📊 Test 3: Order Totals by Status and Region"
+# Test 3: Completed Orders
+echo "📊 Test 3: Completed Orders"
 echo "-----------------------------------"
 export MONGO_COLLECTION="orders"
-export QUERY_NAME="order_totals"
-export METRIC_TAGS="metric=orders,source=mongodb,test=sample_data"
-export MONGO_QUERY='[{"$group":{"_id":{"status":"$status","region":"$region"},"total_amount":{"$sum":"$amount"},"order_count":{"$sum":1},"avg_order_value":{"$avg":"$amount"}}}]'
+export QUERY_NAME="completed_orders"
+export METRIC_TAGS="metric=orders,source=mongodb,test=sample_data,status=completed"
+export MONGO_QUERY='{"status":"completed"}'
 
 "$REPO_ROOT/mongo-telegraf-query"
 echo ""
 
-# Test 4: Product Inventory by Category
-echo "📊 Test 4: Product Inventory by Category"
+# Test 4: Completed Orders from US West
+echo "📊 Test 4: Completed Orders from US West"
+echo "-----------------------------------"
+export QUERY_NAME="us_west_completed_orders"
+export METRIC_TAGS="metric=orders,source=mongodb,test=sample_data"
+export MONGO_QUERY='{"status":"completed","region":"us-west"}'
+
+"$REPO_ROOT/mongo-telegraf-query"
+echo ""
+
+# Test 5: Electronics Products
+echo "📊 Test 5: Electronics Products"
 echo "-----------------------------------"
 export MONGO_COLLECTION="products"
-export QUERY_NAME="product_inventory"
-export METRIC_TAGS="metric=inventory,source=mongodb,test=sample_data"
-export MONGO_QUERY='[{"$group":{"_id":"$category","total_items":{"$sum":"$quantity"},"product_count":{"$sum":1},"avg_price":{"$avg":"$price"},"total_value":{"$sum":{"$multiply":["$quantity","$price"]}}}}]'
+export QUERY_NAME="electronics_products"
+export METRIC_TAGS="metric=products,source=mongodb,test=sample_data,category=electronics"
+export MONGO_QUERY='{"category":"electronics"}'
 
 "$REPO_ROOT/mongo-telegraf-query"
 echo ""
 
-# Test 5: Complex Query - Top Spending Regions
-echo "📊 Test 5: Top Spending Regions (with filtering and sorting)"
+# Test 6: All Users (No Filter)
+echo "📊 Test 6: All Users (No Filter)"
 echo "-----------------------------------"
-export MONGO_COLLECTION="orders"
-export QUERY_NAME="top_spending_regions"
-export METRIC_TAGS="metric=regional_sales,source=mongodb,test=sample_data"
-export MONGO_QUERY='[{"$match":{"status":"completed"}},{"$group":{"_id":"$region","total_revenue":{"$sum":"$amount"},"order_count":{"$sum":1}}},{"$sort":{"total_revenue":-1}},{"$limit":3}]'
+export MONGO_COLLECTION="users"
+export QUERY_NAME="all_users"
+export METRIC_TAGS="metric=users,source=mongodb,test=sample_data"
+export MONGO_QUERY='{}'
 
 "$REPO_ROOT/mongo-telegraf-query"
 echo ""
