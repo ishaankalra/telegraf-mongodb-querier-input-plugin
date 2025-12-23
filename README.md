@@ -57,6 +57,7 @@ export MONGO_QUERY='{"status":"active"}'
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
 | `QUERY_NAME` | Query identifier for logging | `mongo_query` | `user_stats` |
+| `MONGO_PROJECTION` | Field projection (JSON dictionary) | `""` (all fields) | `{"_id":1,"name":1}` |
 | `METRIC_TAGS` | Comma-separated tags (key=value) | `""` | `metric=users,env=prod,source=mongodb` |
 
 ## Telegraf Configuration
@@ -115,6 +116,25 @@ export MONGO_QUERY='{"status":"active","region":"us-east","tier":{"$in":["premiu
 ### Query with Regex
 ```bash
 export MONGO_QUERY='{"email":{"$regex":"@example.com$"}}'
+```
+
+### Field Projection (Select Specific Fields)
+```bash
+# Select only _id and name fields
+export MONGO_QUERY='{"status":"active"}'
+export MONGO_PROJECTION='{"_id":1,"name":1}'
+```
+
+```bash
+# Exclude specific fields (return all except password)
+export MONGO_QUERY='{}'
+export MONGO_PROJECTION='{"password":0,"internal_data":0}'
+```
+
+```bash
+# Combine query and projection
+export MONGO_QUERY='{"region":"us-west"}'
+export MONGO_PROJECTION='{"_id":1,"name":1,"email":1}'
 ```
 
 ## Docker Usage

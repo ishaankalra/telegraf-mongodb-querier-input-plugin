@@ -21,6 +21,7 @@ type Config struct {
 	Database   string
 	Collection string
 	Query      bson.M
+	Projection bson.M
 	Tags       map[string]string
 }
 
@@ -80,6 +81,16 @@ func loadConfigFromEnv() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse MONGO_QUERY as JSON dictionary: %w", err)
 	}
 	config.Query = query
+
+	// Optional: Projection (field selection)
+	projectionJSON := os.Getenv("MONGO_PROJECTION")
+	if projectionJSON != "" {
+		var projection bson.M
+		if err := json.Unmarshal([]byte(projectionJSON), &projection); err != nil {
+			return nil, fmt.Errorf("failed to parse MONGO_PROJECTION as JSON dictionary: %w", err)
+		}
+		config.Projection = projection
+	}
 
 	// Optional: Query name for logging
 	config.Name = os.Getenv("QUERY_NAME")
@@ -142,8 +153,13 @@ func executeQuery(config *Config) error {
 	// Get collection
 	collection := client.Database(config.Database).Collection(config.Collection)
 
-	// Execute find query
-	cursor, err := collection.Find(ctx, config.Query)
+	// Execute find query with optional projection
+	opts := options.Find()
+	if config.Projection != nil {
+		opts.SetProjection(config.Projection)
+	}
+
+	cursor, err := collection.Find(ctx, config.Query, opts)
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
