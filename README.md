@@ -37,8 +37,34 @@ export MONGO_QUERY='{"status":"active"}'
 
 **Expected Output:**
 ```json
-{"fields":{"age":28},"tags":{"metric":"users","source":"mongodb","status":"active","name":"John"},"timestamp":1703260800}
-{"fields":{"age":32},"tags":{"metric":"users","source":"mongodb","status":"active","name":"Jane"},"timestamp":1703260800}
+[
+  {
+    "fields": {
+      "_id": "ObjectID(\"507f1f77bcf86cd799439011\")",
+      "name": "John",
+      "status": "active",
+      "age": 28
+    },
+    "tags": {
+      "metric": "users",
+      "source": "mongodb"
+    },
+    "timestamp": 1703260800
+  },
+  {
+    "fields": {
+      "_id": "ObjectID(\"507f191e810c19729de860ea\")",
+      "name": "Jane",
+      "status": "active",
+      "age": 32
+    },
+    "tags": {
+      "metric": "users",
+      "source": "mongodb"
+    },
+    "timestamp": 1703260800
+  }
+]
 ```
 
 ## Environment Variables
@@ -168,17 +194,33 @@ See `k8s/` directory for example manifests:
 
 ## Output Format
 
-The binary outputs newline-delimited JSON metrics (one metric per document):
+The binary outputs a **JSON array** containing all metrics (compatible with Telegraf's `data_format = "json"`):
 
 ```json
-{"fields":{"age":28,"score":95.5},"tags":{"status":"active","name":"John","metric":"users"},"timestamp":1703260800}
+[
+  {
+    "fields": {
+      "_id": "ObjectID(\"507f1f77bcf86cd799439011\")",
+      "name": "John",
+      "status": "active",
+      "age": 28,
+      "score": 95.5
+    },
+    "tags": {
+      "metric": "users",
+      "source": "mongodb",
+      "environment": "production"
+    },
+    "timestamp": 1703260800
+  }
+]
 ```
 
 ### Field vs Tag Logic
 
-- **Fields** (numeric measurements): `int`, `float`, `bool`
-- **Tags** (dimensions): `string` values
-- **Nested Objects**: Flattened into tags/fields based on type
+- **Fields**: ALL data returned from MongoDB query (`_id`, `name`, numeric values, strings, booleans, etc.)
+- **Tags**: ONLY external metadata from `METRIC_TAGS` environment variable (blueprint, environment, source, etc.)
+- **Nested Objects**: Flattened into fields with nested key names
 - **Note**: The query uses MongoDB's `find()` operation, not aggregation pipelines
 
 ## Development

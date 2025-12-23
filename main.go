@@ -168,6 +168,7 @@ func executeQuery(config *Config) error {
 	// Process results and output metrics
 	timestamp := time.Now().Unix()
 	metricsCount := 0
+	metrics := make([]TelegrafMetric, 0)
 
 	for cursor.Next(ctx) {
 		var result bson.M
@@ -178,21 +179,20 @@ func executeQuery(config *Config) error {
 
 		// Convert MongoDB result to Telegraf metric
 		metric := convertToTelegrafMetric(result, config.Tags, timestamp)
-
-		// Output as JSON (one line per metric)
-		output, err := json.Marshal(metric)
-		if err != nil {
-			log.Printf("Warning: failed to marshal metric: %v", err)
-			continue
-		}
-
-		fmt.Println(string(output))
+		metrics = append(metrics, metric)
 		metricsCount++
 	}
 
 	if err := cursor.Err(); err != nil {
 		return fmt.Errorf("cursor error: %w", err)
 	}
+
+	// Output as JSON array (required for Telegraf data_format = "json")
+	output, err := json.Marshal(metrics)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metrics: %w", err)
+	}
+	fmt.Println(string(output))
 
 	// Log metrics count to stderr (won't interfere with stdout)
 	log.Printf("Successfully output %d metrics for query: %s", metricsCount, config.Name)
@@ -201,17 +201,17 @@ func executeQuery(config *Config) error {
 }
 
 // convertToTelegrafMetric converts a MongoDB result document to Telegraf metric format
-// Numeric values go to fields, strings go to tags
+// All MongoDB query results go to fields, external env vars go to tags
 func convertToTelegrafMetric(result bson.M, baseTags map[string]string, timestamp int64) TelegrafMetric {
 	fields := make(map[string]interface{})
 	tags := make(map[string]string)
 
-	// Copy base tags from config
+	// Copy base tags from config (external metadata from METRIC_TAGS env var)
 	for k, v := range baseTags {
 		tags[k] = v
 	}
 
-	// Process MongoDB result fields
+	// Process MongoDB result fields - ALL results go to fields
 	for key, value := range result {
 		switch v := value.(type) {
 		case int, int32, int64:
@@ -221,25 +221,27 @@ func convertToTelegrafMetric(result bson.M, baseTags map[string]string, timestam
 		case bool:
 			fields[key] = v
 		case string:
-			// Strings become tags
-			tags[key] = v
+			// Strings also go to fields (changed from tags)
+			fields[key] = v
 		case bson.M:
 			// Handle nested objects (from $group _id, etc.)
 			for nestedKey, nestedValue := range v {
 				switch nv := nestedValue.(type) {
 				case string:
-					tags[nestedKey] = nv
+					fields[nestedKey] = nv
 				case int, int32, int64:
 					fields[nestedKey] = nv
 				case float32, float64:
 					fields[nestedKey] = nv
+				case bool:
+					fields[nestedKey] = nv
 				default:
-					tags[nestedKey] = fmt.Sprintf("%v", nv)
+					fields[nestedKey] = fmt.Sprintf("%v", nv)
 				}
 			}
 		default:
-			// Convert everything else to string tag
-			tags[key] = fmt.Sprintf("%v", v)
+			// Convert everything else to string in fields
+			fields[key] = fmt.Sprintf("%v", v)
 		}
 	}
 
