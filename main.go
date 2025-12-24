@@ -27,8 +27,8 @@ type Config struct {
 
 // TelegrafMetric represents the output format for Telegraf
 type TelegrafMetric struct {
-	Fields    map[string]interface{} `json:"fields"`
-	Tags      map[string]string      `json:"tags"`
+	Fields    map[string]interface{} `json:"field"`
+	Tags      map[string]string      `json:"tag"`
 	Timestamp int64                  `json:"timestamp"`
 }
 

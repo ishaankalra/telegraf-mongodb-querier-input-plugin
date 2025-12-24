@@ -39,26 +39,26 @@ export MONGO_QUERY='{"status":"active"}'
 ```json
 [
   {
-    "fields": {
+    "field": {
       "_id": "ObjectID(\"507f1f77bcf86cd799439011\")",
       "name": "John",
       "status": "active",
       "age": 28
     },
-    "tags": {
+    "tag": {
       "metric": "users",
       "source": "mongodb"
     },
     "timestamp": 1703260800
   },
   {
-    "fields": {
+    "field": {
       "_id": "ObjectID(\"507f191e810c19729de860ea\")",
       "name": "Jane",
       "status": "active",
       "age": 32
     },
-    "tags": {
+    "tag": {
       "metric": "users",
       "source": "mongodb"
     },
@@ -199,14 +199,14 @@ The binary outputs a **JSON array** containing all metrics (compatible with Tele
 ```json
 [
   {
-    "fields": {
+    "field": {
       "_id": "ObjectID(\"507f1f77bcf86cd799439011\")",
       "name": "John",
       "status": "active",
       "age": 28,
       "score": 95.5
     },
-    "tags": {
+    "tag": {
       "metric": "users",
       "source": "mongodb",
       "environment": "production"
